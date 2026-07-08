@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>ScoutPortal - ระบบสารสนเทศเกียรติบัตรดิจิทัล</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap');
+    body { font-family: 'Sarabun', sans-serif; background-color: #f4f6fc; }
+    .hidden-section { display: none !important; }
+    .gradient-banner { background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); }
+    .cert-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+    .cert-card:hover { transform: translateY(-4px); }
+  </style>
+</head>
+<body class="text-gray-700 min-h-screen flex flex-col antialiased">
+
+  <nav class="bg-white border-b border-blue-50 px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm z-20">
+    <div class="flex items-center space-x-3">
+      <div class="bg-blue-600 text-white p-2.5 rounded-xl shadow-md"><i class="fa-solid fa-compass text-lg"></i></div>
+      <div>
+        <span class="block font-extrabold text-xl text-slate-800 tracking-wide">ScoutPortal</span>
+        <span class="block text-xs text-slate-400 font-medium">โรงเรียนบ้านตากูก สพป.สุรินทร์ เขต 1</span>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button onclick="switchPage('user')" class="bg-blue-50 hover:bg-blue-100 text-blue-600 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-sm">
+        <i class="fa-solid fa-rectangle-list"></i> โครงสร้างคณะทำงาน
+      </button>
+      <button onclick="switchPage('cert')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-sm">
+        <i class="fa-solid fa-award"></i> ดาวน์โหลด Certificate
+      </button>
+      <button onclick="switchPage('request')" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-sm">
+        <i class="fa-solid fa-paper-plane"></i> ส่งคำร้องขอแก้ไข
+      </button>
+      <button id="btn-admin-view" onclick="loginAdmin()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-sm">
+        <i class="fa-solid fa-shield-halved"></i> แอดมิน (Admin)
+      </button>
+      <button id="btn-logout" onclick="logoutAdmin()" class="hidden-section bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer shadow-sm">
+        <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ
+      </button>
+    </div>
+  </nav>
+
+  <main class="flex-grow container mx-auto p-4 md:p-8 max-w-7xl space-y-6">
+    <div class="gradient-banner text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="space-y-3 z-10 flex-1">
+        <span class="bg-amber-400 text-slate-900 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm">ระบบงานสารสนเทศดิจิทัล</span>
+        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight leading-snug">แต่งตั้งคณะกรรมการจัดพิธีทบทวนคำปฏิญาณและสวนสนาม</h1>
+        <p class="text-blue-100 text-md font-medium">สืบค้นโครงสร้างภาระงาน และดาวน์โหลดเกียรติบัตรออนไลน์ มหกรรมลูกเสือ 2569</p>
+      </div>
+      <div id="filter-wrapper" class="z-10 bg-white/10 p-2.5 rounded-xl backdrop-blur-md border border-white/20 w-full sm:w-64">
+        <select id="sheet-dropdown" onchange="selectDropdownTab(this.value)" class="w-full bg-white text-slate-800 rounded-lg px-3 py-2 text-xs font-bold focus:outline-none shadow-inner cursor-pointer">
+          <option value="">กำลังโหลดฝ่ายงานจากระบบ...</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="loading-overlay" class="flex flex-col items-center justify-center py-20 bg-white rounded-3xl shadow-sm border border-blue-50">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+      <p class="text-slate-500 text-sm font-medium">กำลังสืบค้นและโหลดฐานข้อมูลสารสนเทศ...</p>
+    </div>
+
+    <section id="user-section" class="hidden-section bg-white rounded-3xl shadow-sm border border-blue-50 overflow-hidden">
+      <div class="px-6 py-5 border-b border-blue-50 flex justify-between items-center bg-slate-50/50">
+        <h2 class="font-bold text-slate-800 flex items-center gap-2"><span class="w-2 h-5 bg-blue-500 rounded-full"></span> ฝ่ายงานดำเนินการ: <span id="user-current-sheet" class="text-blue-600 font-extrabold"></span></h2>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm text-left">
+          <thead id="user-table-head" class="bg-blue-50/40 text-slate-600 font-bold border-b border-blue-50 uppercase tracking-wider">
+          </thead>
+          <tbody id="user-table-body" class="divide-y divide-blue-50/50 bg-white text-slate-600">
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="cert-section" class="hidden-section space-y-6">
+      <div class="bg-white rounded-3xl shadow-sm border border-emerald-50 p-6">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4 mb-6">
+          <div class="flex items-center space-x-3">
+            <div class="bg-emerald-500 text-white p-3 rounded-2xl shadow-md"><i class="fa-solid fa-award text-xl"></i></div>
+            <div>
+              <h2 class="font-bold text-slate-800 text-lg">ศูนย์ดาวน์โหลดเกียรติบัตรอิเล็กทรอนิกส์</h2>
+              <p class="text-xs text-slate-400">คุณครูสามารถเลือกเครื่องหมายหน้าฝ่ายงานเพื่อกดยื่นดาวน์โหลดพร้อมกันหลาย ๆ ไฟล์ได้ทันที</p>
+            </div>
+          </div>
+          <button onclick="downloadSelectedCerts()" class="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-sm px-6 py-3 rounded-2xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-circle-down text-base"></i> ดาวน์โหลดหัวข้อที่เลือก (<span id="selected-count">0</span>)
+          </button>
+        </div>
+
+        <div class="flex items-center space-x-2 px-4 py-3 bg-slate-50 rounded-2xl mb-4 w-fit border border-slate-100">
+          <input type="checkbox" id="select-all-certs" onchange="toggleSelectAllCerts(this.checked)" class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer">
+          <label for="select-all-certs" class="text-xs font-bold text-slate-600 cursor-pointer select-none">เลือกฝ่ายดำเนินงานทั้งหมด</label>
+        </div>
+
+        <div id="cert-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+    </section>
+
+    <section id="admin-section" class="hidden-section space-y-6">
+      <div class="bg-white rounded-3xl shadow-sm border border-amber-100 overflow-hidden">
+        <div class="px-6 py-5 border-b border-slate-100 bg-amber-50/30 flex items-center space-x-2">
+          <div class="text-amber-500 text-lg"><i class="fa-solid fa-chart-line"></i></div>
+          <div>
+            <h2 class="font-bold text-slate-800 text-base">แผงควบคุมลิงก์เกียรติบัตร & สถิติยอดการดาวน์โหลดไฟล์จริง</h2>
+            <p class="text-xs text-slate-400">แอดมินสามารถป้อนวางลิงก์ที่อยู่ไฟล์ของแต่ละฝ่ายงาน และดูยอดสถิติจำนวนครั้งที่ถูกเปิดดาวน์โหลดได้แบบเรียลไทม์</p>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left">
+            <thead class="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider">
+              <tr>
+                <th class="px-6 py-4">ชื่อฝ่ายงาน / หัวข้อดำเนินงาน</th>
+                <th class="px-6 py-4 w-1/2">ลิงก์ที่อยู่ไฟล์สำหรับเปิดดาวน์โหลด (URL)</th>
+                <th class="px-6 py-4 text-center">สถิติยอดดาวน์โหลด (ครั้ง)</th>
+                <th class="px-6 py-4 text-center">บันทึกค่า</th>
+              </tr>
+            </thead>
+            <tbody id="admin-cert-config-table" class="divide-y divide-slate-100 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-sm border border-blue-50 overflow-hidden">
+        <div class="px-6 py-5 border-b border-blue-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+          <h2 class="font-bold text-slate-800 flex items-center gap-2"><span class="w-2 h-5 bg-amber-500 rounded-full"></span> จัดการข้อมูลกรรมการ (CRUD): <span id="admin-current-sheet" class="text-amber-600 font-extrabold"></span></h2>
+          <button onclick="openAddModal()" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 cursor-pointer"><i class="fa-solid fa-plus-circle"></i> เพิ่มรายชื่อบุคลากร</button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm text-left">
+            <thead id="admin-table-head" class="bg-blue-50/40 text-slate-600 font-bold border-b border-blue-50 uppercase tracking-wider"></thead>
+            <tbody id="admin-table-body" class="divide-y divide-blue-50/50 bg-white text-slate-600"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-sm border border-blue-50 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 bg-slate-50"><h3 class="font-bold text-slate-800 text-xs flex items-center gap-2"><i class="fa-solid fa-folder-open text-indigo-500"></i> ศูนย์ควบคุมคำร้องขอแก้ไขทั้งหมด</h3></div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-xs text-left">
+            <thead class="bg-slate-100 text-slate-600 font-bold uppercase tracking-wider"><tr><th class="px-6 py-3">หัวข้อ/ฝ่ายงาน</th><th class="px-6 py-3">ผู้แจ้ง</th><th class="px-6 py-3">รายละเอียดคำร้อง</th><th class="px-6 py-3 text-center">สถานะ</th><th class="px-6 py-3 text-center">จัดการคำร้อง</th></tr></thead>
+            <tbody id="admin-req-table-body" class="divide-y divide-slate-100 bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section id="request-section" class="hidden-section space-y-6">
+      <div class="bg-white rounded-3xl shadow-sm border border-blue-50 p-6 max-w-2xl mx-auto">
+        <div class="flex items-center space-x-2 mb-4 border-b border-slate-100 pb-3">
+          <div class="bg-indigo-100 text-indigo-600 p-2.5 rounded-xl"><i class="fa-solid fa-paper-plane"></i></div>
+          <div><h2 class="font-bold text-slate-800 text-base">ฟอร์มส่งคำร้องแก้ไข / เพิ่มเติมข้อมูล</h2><p class="text-xs text-slate-400">รายละเอียดจะถูกบันทึกลงแผ่นงาน "คำร้องขอแก้ไข" อัตโนมัติ</p></div>
+        </div>
+        <form id="request-form" onsubmit="submitUserRequest(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">1. เลือกหัวข้อ / ฝ่ายงานที่ต้องการแก้ไข</label>
+            <select id="request-sheet-select" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50/50"></select>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="space-y-1"><label class="block text-xs font-semibold text-slate-500">2. ชื่อ - สกุล (ผู้แจ้ง)</label><input type="text" id="req-name" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium bg-slate-50/50"></div>
+            <div class="space-y-1"><label class="block text-xs font-semibold text-slate-500">3. ตำแหน่ง (ผู้แจ้ง)</label><input type="text" id="req-position" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium bg-slate-50/50"></div>
+          </div>
+          <div class="space-y-1"><label class="block text-xs font-semibold text-slate-500">4. โรงเรียน</label><input type="text" id="req-school" required class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium bg-slate-50/50"></div>
+          <div class="space-y-1"><label class="block text-xs font-semibold text-slate-500">5. รายละเอียดคำร้องขอแก้ไขหรือเพิ่มเติม</label><textarea id="req-detail" required rows="3" placeholder="ระบุสิ่งที่ต้องการปรับปรุง..." class="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-sm font-medium bg-slate-50/50"></textarea></div>
+          <div class="flex justify-end pt-2"><button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl font-bold text-xs transition shadow-md cursor-pointer"><i class="fa-solid fa-circle-check mr-1"></i> ยื่นเรื่องส่งคำร้อง</button></div>
+        </form>
+      </div>
+
+      <div class="bg-white rounded-3xl shadow-sm border border-blue-50 overflow-hidden">
+        <div class="px-6 py-4 border-b border-blue-50 bg-slate-50/50"><h3 class="font-bold text-slate-800 text-xs sm:text-sm flex items-center gap-2"><span class="w-2 h-4 bg-indigo-500 rounded-full"></span> ตารางติดตามสถานะคำร้องขอแก้ไขทั้งหมดในระบบ</h3></div>
+        <div class="overflow-x-auto"><table class="min-w-full text-xs text-left text-slate-600"><thead class="bg-indigo-50/40 text-slate-600 font-bold border-b border-blue-50 uppercase tracking-wider"><tr><th class="px-6 py-3">ฝ่ายงาน</th><th class="px-6 py-3">ชื่อ-สกุล (ผู้แจ้ง)</th><th class="px-6 py-3">โรงเรียน</th><th class="px-6 py-3">รายละเอียดคำร้อง</th><th class="px-6 py-3 text-center">สถานะติดตาม</th></tr></thead><tbody id="user-req-table-body" class="divide-y divide-blue-50/50 bg-white"></tbody></table></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="crud-modal" class="hidden-section fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-xl w-full overflow-hidden max-h-[90vh] flex flex-col border border-blue-50">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-5 flex justify-between items-center">
+        <div class="flex items-center gap-2"><i class="fa-solid fa-user-pen text-lg"></i><h3 id="modal-title" class="font-bold tracking-wide text-sm">บันทึกข้อมูล</h3></div>
+        <button onclick="closeModal()" class="text-white/80 hover:text-white text-xl cursor-pointer"><i class="fa-solid fa-circle-xmark"></i></button>
+      </div>
+      <form id="crud-form" onsubmit="saveData(event)" class="p-6 overflow-y-auto space-y-4">
+        <input type="hidden" id="form-row-num">
+        <div id="dynamic-inputs" class="grid grid-cols-1 sm:grid-cols-2 gap-4"></div>
+        <div class="flex justify-end gap-3 pt-5 border-t border-blue-50">
+          <button type="button" onclick="closeModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-5 py-2 rounded-xl font-bold text-xs cursor-pointer">ยกเลิก</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-xl font-bold text-xs shadow-md cursor-pointer">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer class="bg-slate-900 text-slate-300 border-t-2 border-blue-500/30 mt-16 pt-12 pb-8 relative overflow-hidden">
+    <div class="container mx-auto px-6 max-w-7xl relative z-10">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-slate-800">
+        <div class="md:col-span-4 space-y-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><i class="fa-solid fa-compass text-base"></i></div>
+            <div>
+              <span class="block font-black text-xl text-white tracking-wider">ScoutPortal</span>
+              <span class="block text-[11px] text-slate-400 font-bold uppercase tracking-widest">Digital Innovation Network</span>
+            </div>
+          </div>
+          <p class="text-xs text-slate-400 leading-relaxed font-medium pt-2">ระบบสารสนเทศดิจิทัล เครือข่ายบริหารสถานศึกษาแบบบูรณาการเขวาสินรินทร์ สังกัดสำนักงานเขตพื้นที่การศึกษาประถมศึกษาสุรินทร์ เขต 1</p>
+        </div>
+        <div class="md:col-span-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
+          <div class="flex items-center space-x-3 mb-3 text-amber-400">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-sm"><i class="fa-solid fa-crown"></i></div>
+            <h4 class="font-extrabold text-xs uppercase tracking-wider text-slate-200">ผู้อำนวยการพัฒนาระบบ</h4>
+          </div>
+          <p class="font-bold text-base text-white tracking-wide">นายวชิรุธ พลชัย</p>
+          <p class="text-xs text-blue-400 font-semibold">ตำแหน่ง ผู้อำนวยการโรงเรียนบ้านตากูก</p>
+        </div>
+        <div class="md:col-span-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5">
+          <div class="flex items-center space-x-3 mb-3 text-emerald-400">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-sm"><i class="fa-solid fa-code"></i></div>
+            <h4 class="font-extrabold text-xs uppercase tracking-wider text-slate-200">ผู้พัฒนาสถาปัตยกรรมระบบ</h4>
+          </div>
+          <p class="font-bold text-base text-white tracking-wide">นายวสันต์ ผู้สมเก่า</p>
+          <p class="text-xs text-emerald-400 font-semibold">ตำแหน่ง ครู วิทยฐานะครูชำนาญการพิเศษ</p>
+        </div>
+      </div>
+      <div class="pt-6 flex flex-col sm:flex-row justify-between items-center text-xs text-slate-500 font-medium gap-3">
+        <div>&copy; 2026 ScoutPortal Network. Hosted on GitHub Pages.</div>
+        <div class="flex space-x-4"><span class="hover:text-white transition duration-200"><i class="fa-solid fa-shield-halved mr-1"></i>Secure API Gateway Connection</span></div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // ⚠️ สำคัญมาก: วางลิงก์ URL ที่ได้จากการ "ทำให้ใช้งานได้ในรูปแบบเว็บแอป" (Web App Executed URL) ของ Google Apps Script ที่นี่
+    const API_URL = "https://script.google.com/macros/s/XXXXX-XXXXX/exec"; 
+
+    let listSheets = [];
+    let currentSheetName = "";
+    let globalData = [];
+    let headers = [];
+    let certConfigMap = {};
+    let isAdminLoggedIn = false;
+    let currentPage = "user";
+
+    document.addEventListener("DOMContentLoaded", function() {
+      initDropdownTabs();
+    });
+
+    // ฟังก์ชันศูนย์กลางเรียกคุยสารสนเทศกับหลังบ้านผ่าน API (Fetch GET/POST Gateway)
+    async function callAPI(action, payload = {}) {
+      try {
+        const queryParams = new URLSearchParams({ action: action, ...payload }).toString();
+        const response = await fetch(`${API_URL}?${queryParams}`, { method: 'GET' });
+        if (!response.ok) throw new Error('Network response was not ok');
+        return await response.json();
+      } catch (error) {
+        console.error("API Error:", error);
+        Swal.fire({ icon: 'error', title: 'การเชื่อมต่อเซิร์ฟเวอร์ผิดพลาด', text: 'กรุณาอัปเดตลิงก์ Web App API_URL ในโค้ดหรือตรวจสอบสัญญาณอินเทอร์เน็ต' });
+        return null;
+      }
+    }
+
+    async function initDropdownTabs() {
+      const sheets = await callAPI('getSheetNames');
+      listSheets = sheets || [];
+      if (listSheets.length > 0) {
+        currentSheetName = listSheets[0];
+        renderDropdownOptions();
+        loadSheetData(currentSheetName);
+      } else {
+        document.getElementById('loading-overlay').innerHTML = `
+          <p class="text-rose-500 text-sm font-bold"><i class="fa-solid fa-triangle-exclamation"></i> ไม่พบแผ่นงานข้อมูลฝ่ายงานในระบบ Google Sheets</p>
+        `;
+      }
+    }
+
+    function renderDropdownOptions() {
+      const select = document.getElementById('sheet-dropdown');
+      const reqSelect = document.getElementById('request-sheet-select');
+      if(!select || !reqSelect) return;
+      const optionsHTML = listSheets.map(name => `<option value="${name}">📋 ${name}</option>`).join('');
+      select.innerHTML = optionsHTML;
+      reqSelect.innerHTML = optionsHTML;
+      select.value = currentSheetName;
+    }
+
+    function selectDropdownTab(sheetName) {
+      if(!sheetName || currentSheetName === sheetName) return;
+      currentSheetName = sheetName;
+      loadSheetData(sheetName);
+    }
+
+    async function loadSheetData(sheetName) {
+      document.getElementById('user-section').classList.add('hidden-section');
+      document.getElementById('cert-section').classList.add('hidden-section');
+      document.getElementById('admin-section').classList.add('hidden-section');
+      document.getElementById('request-section').classList.add('hidden-section');
+      document.getElementById('loading-overlay').classList.remove('hidden-section');
+
+      const certConfig = await callAPI('getCertConfigData');
+      certConfigMap = certConfig || {};
+      
+      const result = await callAPI('getDataFromSheet', { sheetName: sheetName });
+      document.getElementById('loading-overlay').classList.add('hidden-section');
+      globalData = result?.rows || [];
+      headers = result?.headers || [];
+      
+      document.getElementById('user-current-sheet').innerText = sheetName;
+      const adminSheetLabel = document.getElementById('admin-current-sheet');
+      if (adminSheetLabel) adminSheetLabel.innerText = sheetName;
+
+      renderUserTable();
+      renderCertGrid();       
+      
+      if (isAdminLoggedIn) {
+        renderAdminCertConfig();
+        renderAdminTable();
+      }
+      
+      loadRequestsLog(); 
+      executeUIChange(currentPage);
+    }
+
+    function renderUserTable() {
+      const head = document.getElementById('user-table-head');
+      const body = document.getElementById('user-table-body');
+      if (!head || !body) return;
+      if (headers.length === 0) {
+        head.innerHTML = `<tr><th class="px-6 py-4">โครงสร้างข้อมูล</th></tr>`;
+        body.innerHTML = `<tr><td class="text-center py-10 text-slate-400">ไม่มีข้อมูลในชีตฝ่ายงานนี้</td></tr>`;
+        return;
+      }
+      head.innerHTML = `<tr>${headers.map(h => `<th class="px-6 py-4 font-semibold">${h}</th>`).join('')}</tr>`;
+      if (globalData.length === 0) {
+        body.innerHTML = `<tr><td colspan="${headers.length}" class="text-center py-12 text-slate-400">ไม่พบข้อมูลรายชื่อในฝ่ายงานนี้</td></tr>`;
+        return;
+      }
+      body.innerHTML = globalData.map(row => {
+        return `<tr class="hover:bg-blue-50/30 transition duration-150 border-b border-slate-100">
+          ${headers.map(h => `<td class="px-6 py-4 whitespace-nowrap text-slate-600 font-medium">${row[h] !== undefined && row[h] !== "" ? row[h] : '-'}</td>`).join('')}
+        </tr>`;
+      }).join('');
+    }
+
+    function renderCertGrid() {
+      const container = document.getElementById('cert-grid-container');
+      if (!container) return;
+      const selectAllCheck = document.getElementById('select-all-certs');
+      const selectedCountLabel = document.getElementById('selected-count');
+      if (selectAllCheck) selectAllCheck.checked = false;
+      if (selectedCountLabel) selectedCountLabel.innerText = "0";
+      
+      container.innerHTML = listSheets.map(name => {
+        const hasConfig = certConfigMap[name];
+        const fileUrl = hasConfig && hasConfig.url ? hasConfig.url.toString().trim() : "";
+        const count = hasConfig ? hasConfig.count : 0;
+        const isReady = fileUrl !== "" && (fileUrl.toLowerCase().indexOf("http://") === 0 || fileUrl.toLowerCase().indexOf("https://") === 0 || fileUrl.length > 8);
+        
+        return `
+          <div class="cert-card bg-white border border-slate-100 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4 ${isReady ? 'hover:border-emerald-200 hover:shadow-md' : 'bg-slate-50/50 opacity-75'}" style="min-height: 140px;">
+            <div class="flex items-start justify-between">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl ${isReady ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center text-lg"><i class="fa-solid fa-file-zipper"></i></div>
+                <div>
+                  <h4 class="font-bold text-slate-800 text-sm tracking-wide">${name}</h4>
+                  <p class="text-[11px] text-slate-400 font-medium"><i class="fa-solid fa-chart-bar mr-1"></i>ดาวน์โหลดแล้ว ${count} ครั้ง</p>
+                </div>
+              </div>
+              ${isReady ? `<input type="checkbox" name="cert-checkbox" value="${name}" data-url="${fileUrl}" onchange="updateSelectedCount()" class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer mt-1">` : `<i class="fa-solid fa-lock text-slate-300 text-xs mt-1"></i>`}
+            </div>
+            <div class="pt-2 flex justify-between items-center border-t border-slate-50">
+              <span class="text-[11px] font-bold ${isReady ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400 bg-slate-100'} px-2 py-0.5 rounded-md">${isReady ? 'พร้อมดาวน์โหลด' : 'ยังไม่มีไฟล์'}</span>
+              ${isReady ? `<button onclick="directDownloadCert('${name}', '${fileUrl}')" class="text-xs bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg transition shadow-sm flex items-center gap-1 cursor-pointer"><i class="fa-solid fa-download"></i> ดาวน์โหลด</button>` : `<span class="text-xs text-slate-400 font-medium"><i class="fa-solid fa-circle-minus"></i> รอแอดมินอัปเดต</span>`}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateSelectedCount() {
+      const checkedBoxes = document.querySelectorAll('input[name="cert-checkbox"]:checked');
+      const label = document.getElementById('selected-count');
+      if (label) label.innerText = checkedBoxes.length;
+    }
+
+    function toggleSelectAllCerts(isChecked) {
+      const checkboxes = document.querySelectorAll('input[name="cert-checkbox"]');
+      checkboxes.forEach(cb => cb.checked = isChecked);
+      updateSelectedCount();
+    }
+
+    async function downloadSelectedCerts() {
+      const checkedBoxes = document.querySelectorAll('input[name="cert-checkbox"]:checked');
+      if (checkedBoxes.length === 0) {
+        Swal.fire({ icon: 'warning', title: 'กรุณาเลือกฝ่ายงานก่อน!', text: 'ติ๊กเครื่องหมายหน้ากล่องฝ่ายงานที่ต้องการเลือกอย่างน้อย 1 รายการ' });
+        return;
+      }
+      
+      Swal.fire({
+        title: 'ยืนยันดาวน์โหลดข้อมูล?',
+        text: `ระบบกำลังเตรียมเปิดลิงก์ดาวน์โหลดเกียรติบัตรจำนวน ${checkedBoxes.length} ฝ่ายงานพร้อมกัน`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        confirmButtonText: 'ยืนยันเปิดดาวน์โหลด'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          let selectedNames = [];
+          checkedBoxes.forEach(cb => {
+            selectedNames.push(cb.value);
+            window.open(cb.getAttribute('data-url'), '_blank');
+          });
+          await callAPI('incrementDownloadCount', { sheetNames: JSON.stringify(selectedNames) });
+          loadSheetData(currentSheetName);
+        }
+      });
+    }
+
+    async function directDownloadCert(name, url) {
+      window.open(url, '_blank');
+      await callAPI('incrementDownloadCount', { sheetNames: JSON.stringify([name]) });
+      loadSheetData(currentSheetName);
+    }
+
+    function renderAdminCertConfig() {
+      const tbody = document.getElementById('admin-cert-config-table');
+      if (!tbody) return;
+      tbody.innerHTML = listSheets.map(name => {
+        const config = certConfigMap[name];
+        const urlValue = config ? config.url : "";
+        const countValue = config ? config.count : 0;
+        return `
+          <tr class="hover:bg-slate-50/80 transition duration-150">
+            <td class="px-6 py-4 font-bold text-slate-700">📋 ${name}</td>
+            <td class="px-6 py-4">
+              <input type="url" id="cert-url-${name}" value="${urlValue}" placeholder="วางลิงก์ที่อยู่ไฟล์..." class="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-slate-50/50">
+            </td>
+            <td class="px-6 py-4 text-center font-extrabold text-blue-600 bg-blue-50/30 text-sm">${countValue} ครั้ง</td>
+            <td class="px-6 py-4 text-center">
+              <button onclick="updateCertLink('${name}')" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold text-xs px-3 py-1.5 rounded-lg transition shadow-sm cursor-pointer">บันทึก</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function updateCertLink(name) {
+      const urlInput = document.getElementById(`cert-url-${name}`).value.trim();
+      Swal.fire({ title: 'กำลังบันทึกลิงก์ระบบ...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      await callAPI('saveCertLink', { sheetName: name, url: urlInput });
+      Swal.close();
+      Swal.fire({ icon: 'success', title: 'บันทึกข้อมูลเรียบร้อย!', timer: 1000, showConfirmButton: false });
+      loadSheetData(currentSheetName);
+    }
+
+    async function loadRequestsLog() {
+      const result = await callAPI('getRequestLogData');
+      const userBody = document.getElementById('user-req-table-body');
+      const adminBody = document.getElementById('admin-req-table-body');
+      
+      if (!result || !result.rows || result.rows.length === 0) {
+        if (userBody) userBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 font-medium">ยังไม่มีประวัติการยื่นคำร้องขอแก้ไขในระบบ</td></tr>`;
+        if (adminBody) adminBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400 font-medium">ไม่มีคำร้องค้างในระบบ</td></tr>`;
+        return;
+      }
+
+      if (userBody) {
+        userBody.innerHTML = result.rows.map(row => {
+          const status = (row["สถานะ"] || "").toString().trim();
+          const isDone = (status === "อนุมัติเรียบร้อย" || status === "อนุมัติ");
+          const statusBadge = isDone 
+            ? `<span class="inline-flex items-center bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold text-[11px] shadow-sm"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติเรียบร้อย</span>`
+            : `<span class="inline-flex items-center bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-bold text-[11px] shadow-sm"><i class="fa-solid fa-clock mr-1"></i>ยื่นคำร้อง</span>`;
+          return `<tr class="border-b border-slate-100 hover:bg-slate-50/80 transition duration-150">
+            <td class="px-6 py-4 font-semibold text-slate-700">${row["หัวข้อ/ฝ่ายงาน"] || '-'}</td>
+            <td class="px-6 py-4 font-medium text-slate-700">${row["ชื่อ-สกุล (ผู้แจ้ง)"] || '-'}</td>
+            <td class="px-6 py-4 text-slate-500">${row["โรงเรียน"] || '-'}</td>
+            <td class="px-6 py-4 font-medium text-indigo-600 bg-indigo-50/10 rounded-lg">${row["รายละเอียดคำร้อง"] || '-'}</td>
+            <td class="px-6 py-4 text-center whitespace-nowrap">${statusBadge}</td>
+          </tr>`;
+        }).join('');
+      }
+
+      if (adminBody) {
+        adminBody.innerHTML = result.rows.map(row => {
+          const status = (row["สถานะ"] || "").toString().trim();
+          const isDone = (status === "อนุมัติเรียบร้อย" || status === "อนุมัติ");
+          const statusBadge = isDone 
+            ? `<span class="inline-flex items-center bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full font-bold text-[11px]"><i class="fa-solid fa-circle-check mr-1"></i>อนุมัติเรียบร้อย</span>`
+            : `<span class="inline-flex items-center bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold text-[11px]"><i class="fa-solid fa-clock mr-1"></i>ยื่นคำร้อง</span>`;
+          return `<tr class="border-b border-slate-100 hover:bg-slate-50 transition duration-150">
+            <td class="px-6 py-3 font-medium text-slate-700">📂 ${row["หัวข้อ/ฝ่ายงาน"] || '-'}</td>
+            <td class="px-6 py-3 font-semibold text-slate-700">${row["ชื่อ-สกุล (ผู้แจ้ง)"] || '-'}</td>
+            <td class="px-6 py-3 max-w-xs truncate text-slate-600">${row["รายละเอียดคำร้อง"] || '-'}</td>
+            <td class="px-6 py-3 text-center whitespace-nowrap">${statusBadge}</td>
+            <td class="px-6 py-3 text-center space-x-1 whitespace-nowrap">
+              <button onclick="changeReqStatus(${row.rowNum}, 'อนุมัติเรียบร้อย')" class="bg-emerald-500 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg text-[11px] font-bold ${isDone ? 'opacity-40 cursor-not-allowed' : ''}" ${isDone ? 'disabled' : ''}>อนุมัติ</button>
+            </td>
+          </tr>`;
+        }).join('');
+      }
+    }
+
+    async function changeReqStatus(rowNum, status) {
+      Swal.fire({ title: 'กำลังปรับสถานะคำร้อง...', didOpen: () => { Swal.showLoading(); } });
+      await callAPI('updateRequestStatus', { rowNum: rowNum, newStatus: status });
+      Swal.close();
+      loadRequestsLog();
+    }
+
+    function renderAdminTable() {
+      const head = document.getElementById('admin-table-head');
+      const body = document.getElementById('admin-table-body');
+      if (!head || !body || headers.length === 0) return;
+      head.innerHTML = `<tr>${headers.map(h => `<th class="px-6 py-4 font-semibold">${h}</th>`).join('')}<th class="px-6 py-4 text-center w-36">การจัดการ</th></tr>`;
+      body.innerHTML = globalData.map(row => {
+        return `<tr class="hover:bg-blue-50/30 transition duration-150 border-b border-slate-100">
+          ${headers.map(h => `<td class="px-6 py-4 whitespace-nowrap text-slate-600 font-medium truncate max-w-xs">${row[h] !== undefined && row[h] !== "" ? row[h] : '-'}</td>`).join('')}
+          <td class="px-6 py-4 whitespace-nowrap text-center space-x-1.5">
+            <button onclick="openEditModal(${row.rowNum})" class="bg-blue-50 text-blue-600 hover:bg-blue-100 p-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-pen"></i></button>
+            <button onclick="confirmDelete(${row.rowNum})" class="bg-rose-50 text-rose-600 hover:bg-rose-100 p-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-trash-can"></i></button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function submitUserRequest(e) {
+      e.preventDefault();
+      const reqData = {
+        "หัวข้อ/ฝ่ายงาน": document.getElementById('request-sheet-select').value,
+        "ชื่อ-สกุล (ผู้แจ้ง)": document.getElementById('req-name').value,
+        "ตำแหน่ง (ผู้แจ้ง)": document.getElementById('req-position').value,
+        "โรงเรียน": document.getElementById('req-school').value,
+        "รายละเอียดคำร้อง": document.getElementById('req-detail').value,
+        "วันเวลาที่แจ้ง": new Date().toLocaleString('th-TH'),
+        "สถานะ": "ยื่นคำร้อง"
+      };
+      Swal.fire({ title: 'กำลังบันทึกคำร้อง...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      await callAPI('submitRequest', { requestData: JSON.stringify(reqData) });
+      Swal.close();
+      Swal.fire({ icon: 'success', title: 'ยื่นเรื่องสำเร็จ!', timer: 1500, showConfirmButton: false });
+      document.getElementById('request-form').reset();
+      loadRequestsLog();
+    }
+
+    function switchPage(page) {
+      currentPage = page;
+      const overlay = document.getElementById('loading-overlay');
+      if(overlay && !overlay.classList.contains('hidden-section')) return;
+      executeUIChange(page);
+    }
+
+    function executeUIChange(page) {
+      const userSec = document.getElementById('user-section');
+      const certSec = document.getElementById('cert-section');
+      const adminSec = document.getElementById('admin-section');
+      const requestSec = document.getElementById('request-section');
+      const filterWrap = document.getElementById('filter-wrapper');
+
+      if(userSec) userSec.classList.add('hidden-section');
+      if(certSec) certSec.classList.add('hidden-section');
+      if(adminSec) adminSec.classList.add('hidden-section');
+      if(requestSec) requestSec.classList.add('hidden-section');
+      if(filterWrap) filterWrap.classList.remove('hidden-section');
+
+      if (page === 'user' && userSec) { userSec.classList.remove('hidden-section'); } 
+      else if (page === 'cert' && certSec) { certSec.classList.remove('hidden-section'); if(filterWrap) filterWrap.classList.add('hidden-section'); } 
+      else if (page === 'admin' && adminSec && isAdminLoggedIn) { adminSec.classList.remove('hidden-section'); } 
+      else if (page === 'request' && requestSec) { requestSec.classList.remove('hidden-section'); if(filterWrap) filterWrap.classList.add('hidden-section'); }
+    }
+
+    async function loginAdmin() {
+      if (isAdminLoggedIn) { switchPage('admin'); return; }
+      Swal.fire({
+        title: 'ยืนยันสิทธิ์ผู้ดูแลระบบ',
+        text: 'กรุณากรอกรหัสผ่านเข้าใช้งาน (CRUD)',
+        input: 'password',
+        inputPlaceholder: 'พิมพ์รหัสผ่านที่นี่...',
+        showCancelButton: true,
+        confirmButtonColor: '#2563eb'
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          const isValid = await callAPI('checkAdminPassword', { password: result.value });
+          if (isValid === true) {
+            isAdminLoggedIn = true;
+            document.getElementById('btn-admin-view').classList.add('hidden-section');
+            document.getElementById('btn-logout').classList.remove('hidden-section');
+            renderAdminCertConfig();
+            renderAdminTable();
+            switchPage('admin');
+          } else {
+            Swal.fire({ icon: 'error', title: 'รหัสผ่านไม่ถูกต้อง!' });
+          }
+        }
+      });
+    }
+
+    function logoutAdmin() {
+      isAdminLoggedIn = false;
+      document.getElementById('btn-admin-view').classList.remove('hidden-section');
+      document.getElementById('btn-logout').classList.add('hidden-section');
+      switchPage('user');
+    }
+
+    function openAddModal() {
+      if(headers.length === 0) return;
+      document.getElementById('modal-title').innerText = "เพิ่มข้อมูลลงส่วนงาน: " + currentSheetName;
+      document.getElementById('form-row-num').value = "";
+      generateFormInputs({});
+      document.getElementById('crud-modal').classList.remove('hidden-section');
+    }
+
+    function openEditModal(rowNum) {
+      document.getElementById('modal-title').innerText = "แก้ไขข้อมูลคณะกรรมการ (แถว " + rowNum + ")";
+      document.getElementById('form-row-num').value = rowNum;
+      const record = globalData.find(r => r.rowNum === rowNum);
+      if (record) { generateFormInputs(record); document.getElementById('crud-modal').classList.remove('hidden-section'); }
+    }
+
+    function closeModal() { document.getElementById('crud-modal').classList.add('hidden-section'); }
+
+    function generateFormInputs(data) {
+      const wrapper = document.getElementById('dynamic-inputs');
+      if(!wrapper) return;
+      wrapper.innerHTML = headers.map(h => {
+        return `<div class="space-y-1">
+          <label class="block text-xs font-semibold text-slate-500">${h}</label>
+          <input type="text" name="${h}" value="${data[h] !== undefined ? data[h] : ''}" class="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-sm font-medium bg-slate-50/50">
+        </div>`;
+      }).join('');
+    }
+
+    async function saveData(e) {
+      e.preventDefault();
+      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+      const rowNum = document.getElementById('form-row-num').value;
+      const formData = {};
+      const inputs = document.getElementById('crud-form').querySelectorAll('input[name]');
+      inputs.forEach(input => { formData[input.name] = input.value; });
+
+      if (rowNum === "") {
+        await callAPI('createRecord', { sheetName: currentSheetName, formData: JSON.stringify(formData) });
+      } else {
+        await callAPI('updateRecord', { sheetName: currentSheetName, rowNum: parseInt(rowNum), formData: JSON.stringify(formData) });
+      }
+      Swal.close();
+      closeModal();
+      loadSheetData(currentSheetName);
+    }
+
+    function confirmDelete(rowNum) {
+      Swal.fire({ title: 'ต้องการลบแถวข้อมูลนี้หรือไม่?', icon: 'warning', showCancelButton: true, confirmButtonColor: '#e11d48', confirmButtonText: 'ลบเลย' }).then(async (result) => {
+        if (result.isConfirmed) {
+          await callAPI('deleteRecord', { sheetName: currentSheetName, rowNum: rowNum });
+          loadSheetData(currentSheetName);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
